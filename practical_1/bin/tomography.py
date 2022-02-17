@@ -48,10 +48,12 @@ def _sum_diagonals(matrix: arr):
 
 
 def _sum_axis(matrix_in: arr, axis: int):
+    # sum the values in horizontal or vertical lines
     return ny.sum(matrix_in, axis)
 
 
 def _to_ndarray(matrix_in: list, dt) -> arr:
+    # convert list to NumPy-compatible array
     return ny.array(matrix_in, dtype=dt)
 
 # def calloc(n) -> list:
@@ -59,6 +61,7 @@ def _to_ndarray(matrix_in: list, dt) -> arr:
 
 
 def analyze():
+    # get sums from files and export these sums
     for file, ext in IMG_SET:
         matrix = _read_file(RES_DIR, file, ext=ext)
         row_sums, col_sums, sn_diag_sums = _sum_matrix(matrix)
@@ -68,6 +71,8 @@ def analyze():
 
 
 def reconstruct():
+    # generate the difference and reconstruction files
+    # makes calls to the kaczmarz algorithm in the function `_kaczmarz_binary`
     for file, ext in IMG_SET:
         imp: dict = _import_file(OUT_DIR + '/' + file, 'mat')
         recon = _kaczmarz_binary(imp, MAX_ITER)
