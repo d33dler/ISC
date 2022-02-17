@@ -7,10 +7,14 @@ import cv2
 import scipy.io
 
 ny.set_printoptions(threshold=sys.maxsize)
+# how many times the kaczmarz algorithm should process the rays
 MAX_ITER: int = 9
+# error threshold
 EPSILON: float = 0.01
 
-IMG_SET: list = [('oval', 'png'), ('rectangle', 'png'), ('triangle', 'png'), ('rock', 'png')]
+# images to be processed
+IMG_SET: list = [('oval', 'png'), ('rectangle', 'png'),
+                 ('triangle', 'png'), ('rock', 'png')]
 
 OUT_DIR: str = "output"
 RECON_DIR: str = "reconstructions"
@@ -18,6 +22,9 @@ RES_DIR: str = "resources"
 
 
 def _sum_matrix(matrix_in):
+    # computes the sums of horizontal, vertical and diagonal rays through the matrix representation of an image
+    # for the horizontal and vertical rays the dependency `ny` is used
+    # for the diagonal rays additional implementation was needed, which is defined in the `_sum_diagonals` function
     m = ny.array(matrix_in)
     row_sums = ny.sum(m, axis=1)
     col_sums = ny.sum(m, axis=0)
@@ -26,6 +33,7 @@ def _sum_matrix(matrix_in):
 
 
 def _sum_diagonals(matrix: arr):
+    # sums diagonal rays
     diag_sums = []
     row_len = len(matrix[0])
     col_len = len(matrix)
@@ -46,16 +54,16 @@ def _sum_axis(matrix_in: arr, axis: int):
 def _to_ndarray(matrix_in: list, dt) -> arr:
     return ny.array(matrix_in, dtype=dt)
 
-
-def calloc(n) -> list:
-    return [0 for _ in range(n)]
+# def calloc(n) -> list:
+#     return [0 for _ in range(n)]
 
 
 def analyze():
     for file, ext in IMG_SET:
         matrix = _read_file(RES_DIR, file, ext=ext)
         row_sums, col_sums, sn_diag_sums = _sum_matrix(matrix)
-        out = dict([("rowsum", row_sums), ("colsum", col_sums), ("diagsum", sn_diag_sums)])
+        out = dict([("rowsum", row_sums), ("colsum", col_sums),
+                   ("diagsum", sn_diag_sums)])
         export_file(OUT_DIR + '/' + file, 'mat', out)
 
 
@@ -65,26 +73,30 @@ def reconstruct():
         recon = _kaczmarz_binary(imp, MAX_ITER)
         matrix = _read_file(RES_DIR, file, ext=ext)
         print(relative_err(matrix, recon))
-        _write_file(RECON_DIR, name='diff_' + file, ext=ext, file=recon - matrix)
+        _write_file(RECON_DIR, name='diff_' + file,
+                    ext=ext, file=recon - matrix)
         _write_file(RECON_DIR, name=file, ext=ext, file=recon)
 
 
 def _init_matrix(init_val, row_len: int, col_len: int) -> list:
+    # creates a matrix with size `row_len`*`col_len` with initial values `init_val`
     matrix = [[init_val for _ in range(row_len)] for _ in range(col_len)]
     return matrix
 
 
 def relative_err(m_1, m_2):
+    # calculates relative error between the input array m_1 and the reconstruction m_2
     return (ny.sum(ny.abs(ny.subtract(m_1, m_2)))) / (len(m_1) ^ 2)
 
 
 def _stop_criteria(matrix, m_n, epsilon) -> bool:
+    # tests if the relative error between `matrix` and `m_n` is less than the a threshold `epsilon`
     m_out = relative_err(matrix, m_n)
-    # print(m_out)
     return m_out < epsilon
 
 
 def _diag_loop(matrix: arr, a):
+    # implementation for update step for diagonal lines in Kaczmarz method
     row_len = len(matrix[0])
     col_len = len(matrix)
     rc = row_len + col_len
@@ -101,6 +113,8 @@ def _diag_loop(matrix: arr, a):
 
 
 def _kaczmarz_binary(sums: dict, max_iter: int):
+    # implementation of the Kaczmarz algorithm
+    # this implementation is extended to also process diagonal rays
     rowsum: arr = sums['rowsum']
     colsum: arr = sums['colsum']
     diagsum = sums['diagsum']
@@ -121,6 +135,7 @@ def _kaczmarz_binary(sums: dict, max_iter: int):
 
 
 def _axis_loop(matrix: arr, a: arr, axis: int):
+    # implementation for update step for horizontal and vertical lines in Kaczmarz method
     i, n = 0, a.size
     sums = _sum_axis(matrix, axis)
     m = ny.transpose(matrix) if axis == 0 else matrix
@@ -131,29 +146,34 @@ def _axis_loop(matrix: arr, a: arr, axis: int):
     return
 
 
-def export_file(file, extension, out):
+def export_file(file: str, extension: str, out):
+    # exports a matlab file
     mkdir_here(OUT_DIR)
     f = file + '.' + extension
     scipy.io.savemat(f, out)
 
 
 def _import_file(file: str, extension: str) -> dict:
+    # read a matlab file
     return scipy.io.loadmat(file + '.' + extension)
 
 
 def _read_file(*path, sep='/', ext='png'):
+    # used for loading pictures
     file = cv2.imread(sep.join(path) + '.' + ext, 0)
     file = cv2.bitwise_not(file) / 255
     return file
 
 
 def _write_file(*path, sep='/', ext='png', name='out', file=None):
+    # used for saving an image
     mkdir_here(*path)
     return cv2.imwrite(sep.join(path)
                        + sep + name + '.' + ext, ny.abs(file - 1) * 255)
 
 
 def mkdir_here(*path: str, sep='/'):
+    # creates a directory
     current_directory = os.getcwd()
     final_directory = os.path.join(current_directory, sep.join(path))
     if not os.path.exists(final_directory):
