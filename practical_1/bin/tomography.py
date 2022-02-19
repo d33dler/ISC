@@ -4,13 +4,14 @@ import sys
 from typing import Any
 
 import cv2
+import numpy as np
 import numpy as ny
 import scipy.io
 from numpy import ndarray as arr, minimum as mini, maximum as maxi
 
 ny.set_printoptions(threshold=sys.maxsize)
 MAX_ITER: int = 100
-EPSILON: float = 0.01
+EPSILON: float = 1.2
 
 IMG_SET: list = [('oval', 'png'), ('rectangle', 'png'), ('triangle', 'png'), ('rock', 'png')]
 
@@ -68,7 +69,7 @@ def reconstruct():
     for file, ext in IMG_SET:
         imp: dict = _import_file(OUT_DIR + '/' + file, 'mat')
         matrix = _read_file(RES_DIR, file, ext=ext)
-        recon = _kaczmarz_binary(matrix, imp, MAX_ITER)
+        recon = _kaczmarz_binary(imp, MAX_ITER)
         print(relative_err(matrix, recon))
         _write_file(RECON_DIR, name='diff_' + file, ext=ext, file=recon - matrix)
         _write_file(RECON_DIR, name=file, ext=ext, file=recon)
@@ -83,12 +84,11 @@ def relative_err(m_1, m_2) -> float:
     return (ny.sum(ny.abs(ny.subtract(m_1, m_2)))) / (len(m_1) ^ 2)
 
 
-def _stop_criteria(original, matrix, m_n, prev_err: float, epsilon) -> tuple[float, bool | Any]:
+def _stop_criteria(matrix, m_n, prev_err: float, epsilon) -> tuple[float, bool | Any]:
     m_out: float = relative_err(matrix, m_n)
-    new_err: float = relative_err(original, ny.rint(m_n))
     print("err:", m_out)
-    noise = (new_err > prev_err)
-    return new_err, (m_out < epsilon) or noise
+    noise = (m_out > prev_err)
+    return m_out, (m_out < epsilon) or noise
 
 
 def _diag_loop(matrix: arr, a, axis: int):
@@ -108,7 +108,7 @@ def _diag_loop(matrix: arr, a, axis: int):
             m[x][y] = mini(maxi(m[x][y] - b_i, 0), 1)
 
 
-def _kaczmarz_binary(original, sums: dict, max_iter: int):
+def _kaczmarz_binary(sums: dict, max_iter: int):
     rowsum: arr = sums['rowsum']
     colsum: arr = sums['colsum']
     sn_diagsum = sums['sn_diagsum']
@@ -122,7 +122,7 @@ def _kaczmarz_binary(original, sums: dict, max_iter: int):
         _diag_loop(m_n, ns_diagsum[0], 1)
         _diag_loop(m_n, sn_diagsum[0], 0)
         _axis_loop(m_n, rowsum[0], 1)
-        prev_err, b = _stop_criteria(original, matrix, m_n, prev_err, EPSILON)
+        prev_err, b = _stop_criteria(matrix, m_n, prev_err, EPSILON)
         if b:
             break
         matrix = m_n
@@ -138,7 +138,6 @@ def _axis_loop(matrix: arr, a: arr, axis: int):
         b_i = (sums[i] - a[i]) / n
         m[i] = mini(maxi(m[i] - b_i, 0), 1)
         i += 1
-    return
 
 
 def export_file(file, extension, out):
