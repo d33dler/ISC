@@ -4,14 +4,13 @@ import sys
 from typing import Any
 
 import cv2
-import numpy as np
 import numpy as ny
 import scipy.io
 from numpy import ndarray as arr, minimum as mini, maximum as maxi
 
 ny.set_printoptions(threshold=sys.maxsize)
 """how many times the kaczmarz algorithm should process the rays"""
-MAX_ITER: int = 100
+MAX_ITER: int = 10
 """error threshold"""
 EPSILON: float = 1.2
 
@@ -118,7 +117,7 @@ def relative_err(m_1, m_2) -> float:
 
 def _stop_criteria(matrix, m_n, prev_err: float, epsilon) -> tuple[float, bool | Any]:
     """
-    tests if the relative error between `matrix` and `m_n` is less than the a threshold `epsilon`
+    tests if the relative error between `matrix` and `m_n` is less than the threshold `epsilon`
     """
     m_out: float = relative_err(matrix, m_n)
     noise = (m_out > prev_err)
@@ -226,3 +225,8 @@ def mkdir_here(*path: str, sep='/'):
     final_directory = os.path.join(current_directory, sep.join(path))
     if not os.path.exists(final_directory):
         os.makedirs(final_directory)
+
+
+if __name__ == '__main__':
+    analyze()
+    reconstruct()
