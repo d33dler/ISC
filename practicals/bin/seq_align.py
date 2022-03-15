@@ -20,7 +20,7 @@ def calc_align(D: mx, d_cost, a: str, b: str):
     for ix in range(1, D.shape[0]):
         for jx in range(1, D.shape[1]):
             _match = D[ix - 1][jx - 1] + w(d_cost, a[ix - 1], b[jx - 1])
-            _del = D[ix][jx] + d_cost['g']
+            _del = D[ix-1][jx] + d_cost['g']
             _ins = D[ix][jx - 1] + d_cost['g']
             D[ix, jx] = min(_match, _ins, _del)
 
