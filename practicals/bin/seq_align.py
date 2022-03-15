@@ -1,4 +1,6 @@
 import argparse
+import copy
+
 import numpy as np
 from numpy import ndarray as mx
 
@@ -21,18 +23,22 @@ class Cf:
     q: str = 'q'
     g: str = 'g'
     f: str = 'f'
+    xy: str = 'xy'
 
     @staticmethod
     def f_match(D: mx, prms: dict, xy: tuple, *seq):
+        prms[Cf.match][Cf.xy] = (xy[0] - 1, xy[1] - 1)
         prms[Cf.match][Cf.out] = D[xy[0] - 1][xy[1] - 1] \
                                  + Cf.w(prms[Cf.cost], seq[0][xy[0] - 1], seq[1][xy[1] - 1])
 
     @staticmethod
     def f_delete(D: mx, prms: dict, xy: tuple):
+        prms[Cf.delete][Cf.xy] = (xy[0] - 1, xy[1])
         prms[Cf.delete][Cf.out] = D[xy[0] - 1][xy[1]] + prms[Cf.cost][Cf.g]
 
     @staticmethod
     def f_insert(D: mx, prms: dict, xy: tuple):
+        prms[Cf.insert][Cf.xy] = (xy[0], xy[1] - 1)
         prms[Cf.insert][Cf.out] = D[xy[0]][xy[1] - 1] + prms[Cf.cost][Cf.g]
 
     @staticmethod
@@ -57,19 +63,52 @@ def needleman(d_seq: list[str], p: int, q: int, g: int):
     calc_align(D, P, f_dict, d_seq[0], d_seq[1])
     print(D)
     print(P)
+    optimal_align(P, d_seq)
 
 
 def calc_align(D: mx, P: mx, prms: dict, *seq):
     for ix in range(1, D.shape[0]):
+        mini: dict
         for jx in range(1, D.shape[1]):
             f = Cf.f
             prms[Cf.match][f](D, prms, (ix, jx), seq[0], seq[1])
             prms[Cf.insert][f](D, prms, (ix, jx))
             prms[Cf.delete][f](D, prms, (ix, jx))
             res = [prms[Cf.match], prms[Cf.insert], prms[Cf.delete]]
-            mini: dict = min_dict(res, Cf.out)
+            mini = min_dict(res, Cf.out)
             D[ix, jx] = mini[Cf.out]
             P[ix, jx] = mini[Cf.sym]
+
+
+al_map = {
+    chr(92): '|',
+    '|': '-'
+}
+
+f_map = {
+    '\\': (-1, -1),
+    '|': (-1, 0),
+    '-': (0, -1)
+}
+
+
+def optimal_align(P: mx, seq: list[str]):
+    pred_map: list[tuple] = []
+    first: str = seq[0]
+    second: str = seq[1]
+    if len(seq[0]) < len(seq[1]):
+        o = first
+        first = second
+        second = o
+    print(first)
+    xy: tuple = np.subtract(P.shape, (1, 1))
+    pred_map.append(xy)
+    align: str = al_map[P[xy[0]][xy[1]]]
+    for ix in range(len(first), 1, -1):
+        xy = np.add(xy, f_map[P[xy[0]][xy[1]]])
+        align = al_map[P[xy[0]][xy[1]]] + align
+    print(align)
+    print(second)
 
 
 def populate(D: mx, P: mx, d_cost: dict, a: str, b: str):
@@ -77,9 +116,10 @@ def populate(D: mx, P: mx, d_cost: dict, a: str, b: str):
     for ix, l1 in enumerate(a):
         for jx, l2 in enumerate(b):
             D[ix + 1][jx + 1] = 0 if l1 == l2 else g
-    P[0][0] = '*'
     D[0][:] = gen_arr(len(D[0]) * g, step=g)
     np.transpose(D)[0][:] = gen_arr(len(D) * g, step=g)
+    np.transpose(P)[0][:] = '|'
+    P[0][0] = '*'
 
 
 def gen_arr(length: int, step: int = 1):
