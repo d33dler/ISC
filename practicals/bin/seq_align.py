@@ -62,8 +62,13 @@ def needleman(d_seq: list[str], p: int, q: int, g: int):
     populate(D, P, f_dict[Cf.cost], d_seq[0], d_seq[1])
     calc_align(D, P, f_dict, d_seq[0], d_seq[1])
     print(D)
-    print(P)
+    print_matrix(P)
     optimal_align(P, d_seq)
+
+
+def print_matrix(M: mx):
+    for row in M:
+        print(''.join(row))
 
 
 def calc_align(D: mx, P: mx, prms: dict, *seq):
