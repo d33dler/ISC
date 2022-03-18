@@ -7,6 +7,8 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+nw3-output.txt
+
 # C extensions
 *.so
 

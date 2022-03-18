@@ -9,6 +9,20 @@ from utils import min_dict
 nw1: str = 'resources/nw_test1.txt'
 
 
+def _output_file_init():
+    output = open('nw3-output.txt', 'w')
+    output.write("Name: Radu Rebeja + Laurens van Heerde\n")
+    output.write("ISC, Practical 3 \n")
+    output.close()
+
+
+def _output_file_write(d: str):
+    output = open('nw3-output.txt', 'a')
+    output.write(d)
+    output.write("\n")
+    output.close()
+
+
 class Cf:
     """Cost functions wrapper class .
     Includes hardcoded strings for keys (params) for value access"""
@@ -29,7 +43,7 @@ class Cf:
     def f_match(D: mx, prms: dict, xy: tuple, *seq):
         prms[Cf.match][Cf.xy] = (xy[0] - 1, xy[1] - 1)
         prms[Cf.match][Cf.out] = D[xy[0] - 1][xy[1] - 1] \
-                                 + Cf.w(prms[Cf.cost], seq[0][xy[0] - 1], seq[1][xy[1] - 1])
+            + Cf.w(prms[Cf.cost], seq[0][xy[0] - 1], seq[1][xy[1] - 1])
 
     @staticmethod
     def f_delete(D: mx, prms: dict, xy: tuple):
@@ -53,17 +67,34 @@ class Cf:
 
 
 def needleman(d_seq: list[str], p: int, q: int, g: int):
+    _output_file_init()
+    _output_file_write("\n\nString s: \n")
+    _output_file_write(d_seq[0])
+    _output_file_write("\n\nString t: \n")
+    _output_file_write(d_seq[1])
+
     if len(d_seq) < 2:
         raise IOError
     f_dict = Cf.f_dict
     f_dict[Cf.cost] = {Cf.p: p, Cf.q: q, Cf.g: g}
     D: mx = np.ones((len(d_seq[0]) + 1, len(d_seq[1]) + 1))
-    P: mx = np.full((len(d_seq[0]) + 1, len(d_seq[1]) + 1), fill_value="-", dtype=str)
+    P: mx = np.full(
+        (len(d_seq[0]) + 1, len(d_seq[1]) + 1), fill_value="-", dtype=str)
     populate(D, P, f_dict[Cf.cost], d_seq[0], d_seq[1])
     calc_align(D, P, f_dict, d_seq[0], d_seq[1])
-    print(D)
-    print_matrix(P)
+
+    _output_file_write("\n\nMatrix D: \n")
+    _output_file_write(str(D))
+
+    _output_file_write("\n\nMatrix P: \n")
+    _output_matrix(P)
+
     optimal_align(P, d_seq)
+
+
+def _output_matrix(M: mx):
+    for row in M:
+        _output_file_write(''.join(row))
 
 
 def print_matrix(M: mx):
@@ -105,15 +136,16 @@ def optimal_align(P: mx, seq: list[str]):
         o = first
         first = second
         second = o
-    print(first)
     xy: tuple = np.subtract(P.shape, (1, 1))
     pred_map.append(xy)
     align: str = al_map[P[xy[0]][xy[1]]]
     for ix in range(len(first), 1, -1):
         xy = np.add(xy, f_map[P[xy[0]][xy[1]]])
         align = al_map[P[xy[0]][xy[1]]] + align
-    print(align)
-    print(second)
+    _output_file_write("\n\nAlignment P: \n")
+    _output_file_write(first)
+    _output_file_write(align)
+    _output_file_write(second)
 
 
 def populate(D: mx, P: mx, d_cost: dict, a: str, b: str):
@@ -144,7 +176,8 @@ def get_seq(path: str) -> list[str]:
 
 def parse_config():
     parser = argparse.ArgumentParser(description='arg parser')
-    parser.add_argument('a', metavar='N', type=int, nargs='+', help='revisions')
+    parser.add_argument('a', metavar='N', type=int,
+                        nargs='+', help='revisions')
     return parser.parse_args()
 
 
