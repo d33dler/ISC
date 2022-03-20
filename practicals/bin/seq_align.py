@@ -142,10 +142,17 @@ def optimal_align(P: mx, seq: list[str]):
     for ix in range(len(first), 1, -1):
         xy = np.add(xy, f_map[P[xy[0]][xy[1]]])
         align = al_map[P[xy[0]][xy[1]]] + align
+
     _output_file_write("\n\nAlignment P: \n")
     _output_file_write(first)
     _output_file_write(align)
-    _output_file_write(second)
+    s = 0
+    align = list(align)
+    for i in range(len(align)):
+        if(align[i] == "|"):
+            align[i] = second[s]
+            s += 1
+    _output_file_write(''.join(align))
 
 
 def populate(D: mx, P: mx, d_cost: dict, a: str, b: str):
