@@ -25,7 +25,7 @@ def _output_file_write(d: str):
 
 class Cf:
     """Cost functions wrapper class .
-    Includes hardcoded strings for keys (params) for value access"""
+    Includes hardcoded strings for keys (params) used for prudent value accessing"""
 
     match: str = 'match'
     delete: str = 'delete'
@@ -41,24 +41,67 @@ class Cf:
 
     @staticmethod
     def f_match(D: mx, prms: dict, xy: tuple, *seq):
+        """
+                Matching function:
+        Assigns cost based on values compared
+        Parameters
+        ----------
+        D :  Alignment matrix
+        prms : parameters dictionary
+        xy : (x,y) coordinates
+        seq : Iterable of strings
+
+        Returns
+        -------
+        """
         prms[Cf.match][Cf.xy] = (xy[0] - 1, xy[1] - 1)
         prms[Cf.match][Cf.out] = D[xy[0] - 1][xy[1] - 1] \
-            + Cf.w(prms[Cf.cost], seq[0][xy[0] - 1], seq[1][xy[1] - 1])
+                                 + Cf.w(prms[Cf.cost], seq[0][xy[0] - 1], seq[1][xy[1] - 1])
 
     @staticmethod
     def f_delete(D: mx, prms: dict, xy: tuple):
+        """
+        Delete cost function
+        Parameters
+        ----------
+        D :  Alignment matrix
+        prms : parameters dictionary
+        xy : (x,y) coordinates
+
+        Returns
+        -------
+
+        """
         prms[Cf.delete][Cf.xy] = (xy[0] - 1, xy[1])
         prms[Cf.delete][Cf.out] = D[xy[0] - 1][xy[1]] + prms[Cf.cost][Cf.g]
 
     @staticmethod
     def f_insert(D: mx, prms: dict, xy: tuple):
+        """
+        Insertion cost function
+        Parameters
+        ----------
+        D :  Alignment matrix
+        prms : parameters dictionary
+        xy : (x,y) coordinates
+
+        Returns
+        -------
+
+        """
         prms[Cf.insert][Cf.xy] = (xy[0], xy[1] - 1)
         prms[Cf.insert][Cf.out] = D[xy[0]][xy[1] - 1] + prms[Cf.cost][Cf.g]
 
     @staticmethod
     def w(prms: dict, a: str, b: str):
+        """
+        Helper function for Matching
+        """
         return prms[Cf.p] if (a == b) else prms[Cf.q]
 
+    """
+    Function dictionary
+    """
     f_dict: dict = {
         match: dict(f=f_match, sym=chr(92)),
         delete: dict(f=f_delete, sym='|'),
@@ -67,6 +110,24 @@ class Cf:
 
 
 def needleman(d_seq: list[str], p: int, q: int, g: int):
+    """
+    Main function:
+    Creates dictionaries for fast function-symbol access and
+    cost variables usage.
+    Creates alignment (D) and predecessor (P) matrices
+    Populates the matrices before calculations
+    Calls align_calc to calculate optimal alignment
+    Parameters
+    ----------
+    d_seq : Strings to compare
+    p : match cost value
+    q : mismatch cost value
+    g : gap cost value
+
+    Returns
+    -------
+
+    """
     _output_file_init()
     _output_file_write("\n\nString s: \n")
     _output_file_write(d_seq[0])
@@ -103,10 +164,26 @@ def print_matrix(M: mx):
 
 
 def calc_align(D: mx, P: mx, prms: dict, *seq):
+    """
+    Applies the Needleman-Wunsch algorithm
+    For optimization we run it once to populate both
+    alignment (D) and predecessor (P) matrices
+
+    Parameters
+    ----------
+    D : alignment matrix
+    P : predecessor matrix
+    prms : parameter dictionary
+    seq : iterable of compared strings [string_1, string_2]
+
+    Returns
+    -------
+
+    """
+    f = Cf.f
     for ix in range(1, D.shape[0]):
         mini: dict
         for jx in range(1, D.shape[1]):
-            f = Cf.f
             prms[Cf.match][f](D, prms, (ix, jx), seq[0], seq[1])
             prms[Cf.insert][f](D, prms, (ix, jx))
             prms[Cf.delete][f](D, prms, (ix, jx))
@@ -116,11 +193,17 @@ def calc_align(D: mx, P: mx, prms: dict, *seq):
             P[ix, jx] = mini[Cf.sym]
 
 
+"""
+    Dictionary mapping symbols for writing out optimal alignment
+"""
 al_map = {
     chr(92): '|',
     '|': '-'
 }
-
+"""
+    Dictionary mapping symbols to matrix step progressions
+    in predecessor matrix
+"""
 f_map = {
     '\\': (-1, -1),
     '|': (-1, 0),
@@ -129,6 +212,19 @@ f_map = {
 
 
 def optimal_align(P: mx, seq: list[str]):
+    """
+    Calculates optimal alignment by reverse walking the
+    predecessor matrix
+
+    Parameters
+    ----------
+    P : predecessor matrix
+    seq : list of compared strings [string_1, string_2]
+
+    Returns
+    -------
+
+    """
     pred_map: list[tuple] = []
     first: str = seq[0]
     second: str = seq[1]
@@ -149,13 +245,30 @@ def optimal_align(P: mx, seq: list[str]):
     s = 0
     align = list(align)
     for i in range(len(align)):
-        if(align[i] == "|"):
+        if align[i] == "|":
             align[i] = second[s]
             s += 1
     _output_file_write(''.join(align))
 
 
 def populate(D: mx, P: mx, d_cost: dict, a: str, b: str):
+    """
+    Function to populate and initialize the matrices with
+    default values :
+    -gap penalties on 1st column&row in D
+    -marking gap penalties with symbol in P
+    Parameters
+    ----------
+    D : alignment (cost) matrix
+    P : predecessor matrix
+    d_cost : dictionary of cost variables (p,q,g)
+    a : 1st string sequence
+    b : 2nd string sequence
+
+    Returns
+    -------
+
+    """
     g = d_cost[Cf.g]
     for ix, l1 in enumerate(a):
         for jx, l2 in enumerate(b):
@@ -171,6 +284,16 @@ def gen_arr(length: int, step: int = 1):
 
 
 def get_seq(path: str) -> list[str]:
+    """
+    Function to read the string from file
+    Parameters
+    ----------
+    path : txt file to read strings from
+
+    Returns
+    -------
+
+    """
     seq_stack = []
     try:
         with open(path) as file:
